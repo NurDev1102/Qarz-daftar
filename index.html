@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Қарз Дафтар - Nur_devv</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .powered {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.4);
+    }
+    .search-sort, form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+    }
+    input {
+      flex: 1;
+    }
+    button {
+      background: #00c6ff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #0072ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      text-align: left;
+    }
+    th {
+      background-color: rgba(255,255,255,0.08);
+    }
+    .pay, .delete {
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .pay { background-color: #27ae60; }
+    .delete { background-color: #e74c3c; }
+    .due-alert {
+      color: #f1c40f;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧾 Қарз Дафтари</h1>
+    <div class="powered">Powered by <strong>Nur_devv</strong></div>
+  </header>
+
+  <div class="search-sort">
+    <input type="text" id="searchInput" placeholder="Қидирув: исм ёзинг...">
+    <button onclick="sortClients()">А - Я бўйича</button>
+  </div>
+
+  <form id="clientForm">
+    <input type="text" id="name" placeholder="Мижоз исми" required>
+    <input type="tel" id="phone" placeholder="+992xxxxxxxxx" value="+992" required>
+    <input type="number" id="debt" placeholder="Қарз миқдори (сомонӣ)" required>
+    <input type="date" id="dueDate" required>
+    <button type="submit">Қўшиш</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Исми</th>
+        <th>Телефон</th>
+        <th>Қарз</th>
+        <th>Олинган вақт</th>
+        <th>Тўлаш куни</th>
+        <th>⏰</th>
+        <th>Амаллар</th>
+      </tr>
+    </thead>
+    <tbody id="clientTable"></tbody>
+  </table>
+
+  <script>
+    let clients = JSON.parse(localStorage.getItem("clients")) || [];
+
+    function saveClients() {
+      localStorage.setItem("clients", JSON.stringify(clients));
+      renderClients();
+    }
+
+    function renderClients(filtered = null) {
+      const table = document.getElementById("clientTable");
+      table.innerHTML = "";
+      const list = filtered || clients;
+      const today = new Date().toISOString().split('T')[0];
+
+      list.forEach((client, index) => {
+        const isDue = client.dueDate <= today && client.debt > 0;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${client.name}</td>
+          <td>${client.phone}</td>
+          <td>${client.debt} сомонӣ</td>
+          <td>${client.debtDate}</td>
+          <td>${client.dueDate}</td>
+          <td>${isDue ? '<span class="due-alert">🔔</span>' : ''}</td>
+          <td>
+            <button class="pay" onclick="payDebt(${clients.indexOf(client)})">Тўлов</button>
+            <button class="delete" onclick="deleteClient(${clients.indexOf(client)})">Ўчириш</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    function payDebt(index) {
+      let amount = prompt("Қанча сомонӣ тўланди?");
+      amount = parseFloat(amount);
+      if (!isNaN(amount) && amount > 0) {
+        if (!clients[index].history) clients[index].history = [];
+        clients[index].history.push({ paid: amount, date: new Date().toLocaleString() });
+        clients[index].debt -= amount;
+        if (clients[index].debt < 0) clients[index].debt = 0;
+        saveClients();
+      }
+    }
+
+    function deleteClient(index) {
+      if (confirm("Ростдан ўчирмоқчимисиз?")) {
+        clients.splice(index, 1);
+        saveClients();
+      }
+    }
+
+    function sortClients() {
+      clients.sort((a, b) => a.name.localeCompare(b.name));
+      saveClients();
+    }
+
+    document.getElementById("clientForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const debt = parseFloat(document.getElementById("debt").value);
+      const dueDate = document.getElementById("dueDate").value;
+
+      if (!phone.startsWith('+992') || phone.length < 10) {
+        alert("Телефон рақам +992 билан бошланиши керак (масалан: +992901234567)");
+        return;
+      }
+
+      if (name && !isNaN(debt) && dueDate) {
+        const debtDate = new Date().toLocaleString();
+        clients.push({ name, phone, debt, dueDate, debtDate });
+        saveClients();
+        this.reset();
+        document.getElementById("phone").value = "+992";
+      }
+    });
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const query = this.value.toLowerCase();
+      const filtered = clients.filter(c => c.name.toLowerCase().includes(query));
+      renderClients(filtered);
+    });
+
+    renderClients();
+  </script>
+</body>
+</html>
